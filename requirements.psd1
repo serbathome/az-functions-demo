@@ -2,7 +2,5 @@
 # See https://aka.ms/functionsmanageddependency for additional information.
 #
 @{
-    # Azure PowerShell modules for storage operations
-    'Az.Storage' = '6.*'
-    'Az.Accounts' = '3.*'
+    # No external dependencies required - using native PowerShell HTTP calls
 }

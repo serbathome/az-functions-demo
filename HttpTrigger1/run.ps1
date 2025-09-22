@@ -6,103 +6,67 @@ param($Request, $TriggerMetadata)
 # Write to the Azure Functions log stream.
 Write-Host "PowerShell HTTP trigger function processed a request."
 
-# Import required Azure modules
-Import-Module Az.Storage
-Import-Module Az.Accounts
+using namespace System.Net
 
-# Storage account configuration
+# Input bindings are passed in via param block.
+param($Request, $TriggerMetadata)
+
+# Write to the Azure Functions log stream.
+Write-Host "PowerShell HTTP trigger function processed a request."
+
+# Function to get managed identity access token
+function Get-ManagedIdentityToken {
+    $TokenUri = "$($env:IDENTITY_ENDPOINT)?api-version=2019-08-01&resource=https://storage.azure.com/"
+    $Headers = @{
+        'Metadata' = 'true'
+        'X-IDENTITY-HEADER' = $env:IDENTITY_HEADER
+    }
+    
+    try {
+        $Response = Invoke-RestMethod -Uri $TokenUri -Method GET -Headers $Headers
+        return $Response.access_token
+    }
+    catch {
+        return $null
+    }
+}
+
+# Storage configuration
 $StorageAccountName = $env:STORAGE_ACCOUNT_NAME ?? "pipelinebkp"
-$StorageEndpoint = "https://$StorageAccountName.blob.core.windows.net"
 $ContainerName = "backup"
 
 try {
-    Write-Host "Connecting to storage account using managed identity: $StorageAccountName"
+    # Get access token
+    $AccessToken = Get-ManagedIdentityToken
     
-    # Create storage context using managed identity
-    # The function app's managed identity should have Storage Blob Data Contributor role
-    $StorageContext = New-AzStorageContext -StorageAccountName $StorageAccountName -UseConnectedAccount
-    
-    if ($StorageContext) {
-        Write-Host "Successfully connected to storage account using managed identity: $StorageAccountName"
-        
-        # Test the connection by attempting to access the storage account
-        try {
-            # Check if backup container exists, create if it doesn't
-            $Container = Get-AzStorageContainer -Name $ContainerName -Context $StorageContext -ErrorAction SilentlyContinue
-            
-            if (-not $Container) {
-                Write-Host "Creating backup container: $ContainerName"
-                $Container = New-AzStorageContainer -Name $ContainerName -Context $StorageContext -Permission Off
-                Write-Host "Backup container created successfully"
-            } else {
-                Write-Host "Backup container already exists: $ContainerName"
-            }
-            
-            # List existing blobs in the backup container
-            $Blobs = Get-AzStorageBlob -Container $ContainerName -Context $StorageContext
-            $BlobCount = $Blobs.Count
-            Write-Host "Found $BlobCount blobs in backup container"
-            
-            # Get container properties to verify access
-            $ContainerProperties = Get-AzStorageContainer -Name $ContainerName -Context $StorageContext
-            
-            # Prepare response with storage connection info
-            $StorageInfo = @{
-                StorageAccount = $StorageAccountName
-                Container = $ContainerName
-                BlobCount = $BlobCount
-                Status = "Connected"
-                Endpoint = $StorageEndpoint
-                AuthMethod = "ManagedIdentity"
-                ContainerCreated = $ContainerProperties.LastModified
-            }
-            
-        } catch {
-            Write-Error "Error accessing storage container: $($_.Exception.Message)"
-            $StorageInfo = @{
-                StorageAccount = $StorageAccountName
-                Container = $ContainerName
-                Status = "Connected but access denied"
-                Error = "Managed identity may lack proper permissions. Ensure 'Storage Blob Data Contributor' role is assigned."
-                AuthMethod = "ManagedIdentity"
-                DetailedError = $_.Exception.Message
-            }
+    if ($AccessToken) {
+        # Check if container exists
+        $ContainerUri = "https://$StorageAccountName.blob.core.windows.net/$ContainerName" + "?restype=container"
+        $Headers = @{
+            'Authorization' = "Bearer $AccessToken"
+            'x-ms-version' = "2021-08-06"
         }
         
-    } else {
-        Write-Warning "Failed to create storage context with managed identity"
-        $StorageInfo = @{
-            StorageAccount = $StorageAccountName
-            Container = $ContainerName
-            Status = "Failed to connect"
-            Error = "Could not establish storage context with managed identity"
-            AuthMethod = "ManagedIdentity"
-        }
+        $Response = Invoke-RestMethod -Uri $ContainerUri -Method GET -Headers $Headers
+        $ContainerExists = $true
+        $Status = "Container exists"
     }
-    
-} catch {
-    Write-Error "Error connecting to storage account with managed identity: $($_.Exception.Message)"
-    $StorageInfo = @{
-        StorageAccount = $StorageAccountName
-        Container = $ContainerName
-        Status = "Error"
-        Error = "Managed identity authentication failed. Ensure the function app has a system or user-assigned managed identity with appropriate storage permissions."
-        AuthMethod = "ManagedIdentity"
-        DetailedError = $_.Exception.Message
+    else {
+        $ContainerExists = $false
+        $Status = "Failed to get access token"
     }
 }
-
-# Interact with query parameters or the body of the request.
-$name = $Request.Query.Name
-if (-not $name) {
-    $name = $Request.Body.Name
+catch {
+    $ContainerExists = ($_.Exception.Response.StatusCode.value__ -ne 404)
+    $Status = if ($_.Exception.Response.StatusCode.value__ -eq 404) { "Container does not exist" } else { "Error: $($_.Exception.Message)" }
 }
 
-$body = "Azure Functions backup pipeline initialized. Storage connection details: $($StorageInfo | ConvertTo-Json -Depth 2)"
-
-if ($name) {
-    $body = "Hello, $name. $body"
-}
+$body = @{
+    StorageAccount = $StorageAccountName
+    Container = $ContainerName
+    ContainerExists = $ContainerExists
+    Status = $Status
+} | ConvertTo-Json
 
 
 
