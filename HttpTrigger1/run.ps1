@@ -11,7 +11,7 @@ $tokenResponse = Invoke-RestMethod -Method GET `
 $bearerToken = $tokenResponse.access_token
 
 # Use token to call Storage REST API
-$storageAccount = "mystorageacct"
+$storageAccount = "pipelinebkp"
 $headers = @{
     Authorization = "Bearer $bearerToken"
     "x-ms-version" = "2021-08-06"
