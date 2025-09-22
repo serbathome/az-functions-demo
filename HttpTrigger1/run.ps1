@@ -18,6 +18,15 @@ if ($name) {
     $body = "Hello, $name. This HTTP triggered function executed successfully."
 }
 
+# let's add code to ping a hostname: pipelinebkp.blob.core.windows.net
+$hostname = "pipelinebkp.blob.core.windows.net"
+$ping = Test-Connection -ComputerName $hostname -Count 1 -ErrorAction SilentlyContinue
+if ($ping) {
+    $body += "`nPing to $hostname was successful."
+} else {
+    $body += "`nPing to $hostname failed."
+}
+
 # Associate values to output bindings by calling 'Push-OutputBinding'.
 Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
     StatusCode = [HttpStatusCode]::OK
