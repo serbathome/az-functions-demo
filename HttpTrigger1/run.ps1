@@ -1,36 +1,27 @@
 using namespace System.Net
 
-# Input bindings are passed in via param block.
 param($Request, $TriggerMetadata)
 
-# Write to the Azure Functions log stream.
-Write-Host "PowerShell HTTP trigger function processed a request."
+# Request token for Storage
+$resource = "https://storage.azure.com/"
+$tokenResponse = Invoke-RestMethod -Method GET `
+    -Uri "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2019-08-01&resource=$resource" `
+    -Headers @{ Metadata = "true" }
 
-# Interact with query parameters or the body of the request.
-$name = $Request.Query.Name
-if (-not $name) {
-    $name = $Request.Body.Name
+$bearerToken = $tokenResponse.access_token
+
+# Use token to call Storage REST API
+$storageAccount = "mystorageacct"
+$headers = @{
+    Authorization = "Bearer $bearerToken"
+    "x-ms-version" = "2021-08-06"
 }
 
-$body = "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
+$response = Invoke-RestMethod -Uri "https://$storageAccount.blob.core.windows.net/?comp=list" `
+    -Method GET -Headers $headers
 
-if ($name) {
-    $body = "Hello, $name. This HTTP triggered function executed successfully."
-}
-
-$storageAccountName = "pipelinebkp.blob.core.windows.net"
-$ipAddresses = [System.Net.Dns]::GetHostAddresses($storageAccountName) | ForEach-Object { $_.IPAddressToString }
-
-
-###
-# Get access token for a specific resource
-$token = Get-AzAccessToken -ResourceUrl "https://storage.azure.com/"
-$bearerToken = $token.Token
-###
-
-
-# Associate values to output bindings by calling 'Push-OutputBinding'.
 Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
     StatusCode = [HttpStatusCode]::OK
-    Body = $bearerToken
+    Body       = $response
 })
+
