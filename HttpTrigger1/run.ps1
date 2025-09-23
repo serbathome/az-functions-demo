@@ -34,6 +34,10 @@ catch {
 }
 
 # get list of data factory pipelines
+$headers = @{
+    'Authorization' = "Bearer $accessToken"
+    'Content-Type' = 'application/json'
+}
 $listUrl = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.DataFactory/factories/$dataFactoryName/pipelines?api-version=2018-06-01"
 $pipelines = Invoke-RestMethod -Uri $listUrl -Method Get -Headers $headers
 
