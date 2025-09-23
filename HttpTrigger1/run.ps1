@@ -8,6 +8,9 @@ $response = "Hello, world! This HTTP triggered function executed successfully."
 $tenantId = $env:TENANT_ID
 $clientId = $env:CLIENT_ID
 $clientSecret = $env:SECRET
+$subscriptionId = $env:SUBSCRIPTION_ID
+$resourceGroup = $env:RESOURCE_GROUP
+$dataFactoryName = $env:DATA_FACTORY_NAME
 
 $tokenEndpoint = "https://login.microsoftonline.com/$tenantId/oauth2/token"
 $tokenParams = @{
@@ -17,6 +20,7 @@ $tokenParams = @{
     "resource" = "https://management.core.windows.net"
 }
 
+# get access token from Azure AD using client credentials
 try {
     # Request access token
     $accessTokenResponse = Invoke-RestMethod -Uri $tokenEndpoint -Method POST -Body $tokenParams
@@ -29,9 +33,14 @@ catch {
     $response = "Failed to obtain access token: $_"
 }
 
+# get list of data factory pipelines
+$listUrl = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.DataFactory/factories/$dataFactoryName/pipelines?api-version=2018-06-01"
+$pipelines = Invoke-RestMethod -Uri $listUrl -Method Get -Headers $headers
+
+
 
 Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
     StatusCode = [HttpStatusCode]::OK
-    Body       = $response
+    Body       = $pipelines
 })
 
