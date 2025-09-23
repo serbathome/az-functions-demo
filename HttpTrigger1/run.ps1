@@ -14,7 +14,7 @@ function savePipelineToBlob {
     # REST endpoint
     $Uri = "https://$StorageAccount.blob.core.windows.net/$Container/$BlobName"
     # Encode body
-    $Body          = [System.Text.Encoding]::UTF8.GetBytes($Content)
+    $Body          = [System.Text.Encoding]::UTF8.GetBytes($pipelineJson)
     # $ContentLength = $Body.Length
     $Headers = @{
         "Authorization" = "Bearer $accessToken"
