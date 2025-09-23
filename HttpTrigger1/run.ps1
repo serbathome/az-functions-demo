@@ -45,9 +45,9 @@ $tokenParams = @{
     "resource" = "https://management.core.windows.net"
 }
 
-# get access token from Azure AD using client credentials
+# get access token from Azure AD using client credentials for Azure Resource Manager
 try {
-    # Request access token
+    # Request access token for Azure Resource Manager
     $accessTokenResponse = Invoke-RestMethod -Uri $tokenEndpoint -Method POST -Body $tokenParams
 
     # Extract access token
@@ -56,6 +56,23 @@ try {
 }
 catch {
     $response = "Failed to obtain access token: $_"
+}
+
+# get access token for Azure Storage
+$storageTokenParams = @{
+    "grant_type" = "client_credentials"
+    "client_id" = $clientId
+    "client_secret" = $clientSecret
+    "resource" = "https://storage.azure.com/"
+}
+
+try {
+    # Request access token for Storage
+    $storageTokenResponse = Invoke-RestMethod -Uri $tokenEndpoint -Method POST -Body $storageTokenParams
+    $storageAccessToken = $storageTokenResponse.access_token
+}
+catch {
+    Write-Output "Failed to obtain storage access token: $_"
 }
 
 # get list of data factory pipelines
@@ -73,7 +90,7 @@ foreach ($pipeline in $pipelines.value) {
     # call blob REST API to upload JSON from $pipeline object
     $pipelineJson = $pipeline | ConvertTo-Json -Depth 10
     try {
-        savePipelineToBlob -pipelineJson $pipelineJson -BlobName $pipelineName -accessToken $accessToken
+        savePipelineToBlob -pipelineJson $pipelineJson -BlobName $pipelineName -accessToken $storageAccessToken
     }
     catch {
         Write-Output "Failed to upload pipeline $pipelineName : $_"
