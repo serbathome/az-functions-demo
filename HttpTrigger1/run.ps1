@@ -14,7 +14,7 @@ $tokenParams = @{
     "grant_type" = "client_credentials"
     "client_id" = $clientId
     "client_secret" = $clientSecret
-    "resource" = "https://manage.microsoft.com"
+    "resource" = "https://management.microsoft.com"
 }
 
 try {
