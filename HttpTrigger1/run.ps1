@@ -2,7 +2,31 @@ using namespace System.Net
 
 param($Request, $TriggerMetadata)
 
-$response = "Hello, world! This HTTP triggered function executed successfully."
+
+function savePipelineToBlob {
+    param (
+        $pipelineJson,
+        $BlobName,
+        $accessToken
+    )
+    $StorageAccount = "bkpacc"
+    $Container      = "pipelines"
+    # REST endpoint
+    $Uri = "https://$StorageAccount.blob.core.windows.net/$Container/$BlobName"
+    # Encode body
+    $Body          = [System.Text.Encoding]::UTF8.GetBytes($Content)
+    # $ContentLength = $Body.Length
+    $Headers = @{
+        "Authorization" = "Bearer $accessToken"
+        "x-ms-version"  = "2021-12-02"
+        "x-ms-date"     = (Get-Date).ToUniversalTime().ToString("R") # RFC1123
+        "x-ms-blob-type"= "BlockBlob"
+        "Content-Type"  = "text/plain; charset=UTF-8"
+        }
+    $response = Invoke-RestMethod -Method PUT -Uri $Uri -Headers $Headers -Body $Body
+    Write-Host "Blob uploaded successfully: $Container/$BlobName"
+    return $response
+}
 
 
 $tenantId = $env:TENANT_ID
@@ -11,6 +35,7 @@ $clientSecret = $env:SECRET
 $subscriptionId = $env:SUBSCRIPTION_ID
 $resourceGroup = $env:RESOURCE_GROUP
 $dataFactoryName = $env:DATA_FACTORY_NAME
+
 
 $tokenEndpoint = "https://login.microsoftonline.com/$tenantId/oauth2/token"
 $tokenParams = @{
@@ -45,6 +70,15 @@ $pipelines = Invoke-RestMethod -Uri $listUrl -Method Get -Headers $headers
 foreach ($pipeline in $pipelines.value) {
     $pipelineName = $pipeline.name
     Write-Output "Processing pipeline: $pipelineName"
+    # call blob REST API to upload JSON from $pipeline object
+    $pipelineJson = $pipeline | ConvertTo-Json -Depth 10
+    try {
+        savePipelineToBlob -pipelineJson $pipelineJson -BlobName $pipelineName -accessToken $accessToken
+    }
+    catch {
+        Write-Output "Failed to upload pipeline $pipelineName : $_"
+    }
+    
 }
 
 
