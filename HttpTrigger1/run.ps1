@@ -41,6 +41,11 @@ $headers = @{
 $listUrl = "https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.DataFactory/factories/$dataFactoryName/pipelines?api-version=2018-06-01"
 $pipelines = Invoke-RestMethod -Uri $listUrl -Method Get -Headers $headers
 
+# Export each pipeline JSON
+foreach ($pipeline in $pipelines.value) {
+    $pipelineName = $pipeline.name
+    Write-Output "Processing pipeline: $pipelineName"
+}
 
 
 Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
