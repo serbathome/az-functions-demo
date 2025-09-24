@@ -2,6 +2,12 @@ using namespace System.Net
 
 param($Request, $TriggerMetadata)
 
+$storageAccountName = $Request.body.StorageAccountName
+$containerName = $Request.body.ContainerName
+$factoryName = $Request.body.FactoryName
+$folderName = Get-Date -Format "yyyy-MM-dd-hh-mm-ss"
+
+
 function Get-AccessToken($resource) {
     $tokenParams = @{
         grant_type = "client_credentials"
@@ -13,7 +19,7 @@ function Get-AccessToken($resource) {
 }
 
 function Save-PipelineToBlob($pipelineJson, $blobName, $accessToken) {
-    $uri = "https://bkpacc.blob.core.windows.net/pipelines/$blobName"
+    $uri = "https://$storageAccountName.blob.core.windows.net/$containerName/$folderName/$blobName"
     $headers = @{
         Authorization = "Bearer $accessToken"
         "x-ms-version" = "2021-12-02"
@@ -28,7 +34,7 @@ try {
     $managementToken = Get-AccessToken "https://management.core.windows.net"
     $storageToken = Get-AccessToken "https://storage.azure.com/"
     
-    $listUrl = "https://management.azure.com/subscriptions/$($env:SUBSCRIPTION_ID)/resourceGroups/$($env:RESOURCE_GROUP)/providers/Microsoft.DataFactory/factories/$($env:DATA_FACTORY_NAME)/pipelines?api-version=2018-06-01"
+    $listUrl = "https://management.azure.com/subscriptions/$($env:SUBSCRIPTION_ID)/resourceGroups/$($env:RESOURCE_GROUP)/providers/Microsoft.DataFactory/factories/$factoryName/pipelines?api-version=2018-06-01"
     $pipelines = Invoke-RestMethod -Uri $listUrl -Headers @{ Authorization = "Bearer $managementToken" }
     
     foreach ($pipeline in $pipelines.value) {
