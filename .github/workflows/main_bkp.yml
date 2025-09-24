@@ -6,7 +6,7 @@ name: Build and deploy Powershell project to Azure Function App - bkp
 on:
   push:
     branches:
-      - initial
+      - main
   workflow_dispatch:
 
 env:
@@ -37,4 +37,5 @@ jobs:
           app-name: 'bkp'
           slot-name: 'Production'
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+
           
