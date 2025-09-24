@@ -1,3 +1,5 @@
 {
-    "name": "Azure"
+	"StorageAccountName": "bkpacc",
+	"ContainerName": "pipelines",
+	"FactoryName": "pipeline-backup-demo"
 }
