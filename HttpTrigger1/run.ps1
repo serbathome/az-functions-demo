@@ -39,8 +39,8 @@ try {
     
     foreach ($pipeline in $pipelines.value) {
         Write-Output "Processing pipeline: $($pipeline.name)"
-        Write-Output "Saving pipeline in the folder: $($pipeline.folder.name)"
-        Save-PipelineToBlob ($pipeline | ConvertTo-Json -Depth 10) $pipeline.name $pipeline.folder.name $storageToken
+        Write-Output "Saving pipeline in the folder: $($pipeline.properties.folder.name)"
+        Save-PipelineToBlob ($pipeline | ConvertTo-Json -Depth 10) $pipeline.name $pipeline.properties.folder.name $storageToken
     }
     
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
