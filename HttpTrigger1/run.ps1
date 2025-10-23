@@ -18,8 +18,8 @@ function Get-AccessToken($resource) {
     (Invoke-RestMethod -Uri "https://login.microsoftonline.com/$($env:TENANT_ID)/oauth2/token" -Method POST -Body $tokenParams).access_token
 }
 
-function Save-PipelineToBlob($pipelineJson, $blobName, $accessToken) {
-    $uri = "https://$storageAccountName.blob.core.windows.net/$containerName/$folderName/$blobName"
+function Save-PipelineToBlob($pipelineJson, $pipelineName, $pipelineFolderName, $accessToken) {
+    $uri = "https://$storageAccountName.blob.core.windows.net/$containerName/$folderName/$pipelineFolderName/$pipelineName"
     $headers = @{
         Authorization = "Bearer $accessToken"
         "x-ms-version" = "2021-12-02"
@@ -39,7 +39,8 @@ try {
     
     foreach ($pipeline in $pipelines.value) {
         Write-Output "Processing pipeline: $($pipeline.name)"
-        Save-PipelineToBlob ($pipeline | ConvertTo-Json -Depth 10) $pipeline.name $storageToken
+        Write-Output "Saving pipeline in the folder: $($pipeline.folder.name)"
+        Save-PipelineToBlob ($pipeline | ConvertTo-Json -Depth 10) $pipeline.name $pipeline.folder.name $storageToken
     }
     
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
