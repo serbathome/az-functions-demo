@@ -19,7 +19,7 @@ function Get-AccessToken($resource) {
 }
 
 function Save-PipelineToBlob($pipelineJson, $pipelineName, $pipelineFolderName, $accessToken) {
-    $uri = "https://$storageAccountName.blob.core.windows.net/$containerName/$folderName/$pipelineFolderName/$pipelineName"
+    $uri = "https://$storageAccountName.blob.core.windows.net/$containerName/$folderName/pipelines/$pipelineFolderName/$pipelineName"
     $headers = @{
         Authorization = "Bearer $accessToken"
         "x-ms-version" = "2021-12-02"
@@ -31,7 +31,7 @@ function Save-PipelineToBlob($pipelineJson, $pipelineName, $pipelineFolderName, 
 }
 
 function Save-DatasetToBlob($datasetJson, $datasetName, $datasetFolderName, $accessToken) {
-    $uri = "https://$storageAccountName.blob.core.windows.net/$containerName/$folderName/$datasetFolderName/$datasetName"
+    $uri = "https://$storageAccountName.blob.core.windows.net/$containerName/$folderName/$datasetFolderName/datasets/$datasetName"
     $headers = @{
         Authorization = "Bearer $accessToken"
         "x-ms-version" = "2021-12-02"
